@@ -48,7 +48,7 @@ class BotMessage():
                 self.photo_string += f'photo{photo["owner_id"]}_{photo["id"]},'
         except (IndexError):
             self.message_send(self.user_id, f'Не найдено подходящих анкет')
-            
+            exit([0])
     
 
     def request_mes(self):
