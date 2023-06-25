@@ -10,7 +10,7 @@ class Info_users:
         self.vkapi = vk_api.VkApi(token=access_token)
 
     def bdate_toyear(self,bdate):
-        if bdate.split('.') == 3:
+        if len(bdate.split('.')) == 3:
             user_year = bdate.split('.')[2] 
             now = datetime.now().year
             return now-int(user_year)

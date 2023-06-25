@@ -34,11 +34,7 @@ class BotMessage():
         else:
             return True
         
-    def sex_check(self, sex):
-        if sex != 'м' or 'ж':
-            return False
-        else:
-            return True
+        
         
     def photo (self):
         try:
@@ -48,7 +44,7 @@ class BotMessage():
             for photo in photos:
                 self.photo_string += f'photo{photo["owner_id"]}_{photo["id"]},'
         except (IndexError):
-            self.message_send(self.event.user_id, f'Идёт поиск...')
+            self.worksheet = []
         else:
             return
     
@@ -59,30 +55,32 @@ class BotMessage():
                 if event.text.lower()=="привет":
                     self.params = self.vk_client.get_profile_info(event.user_id)
                     self.message_send(event.user_id, f'Привет, {self.params["name"]}')
+
                     if self.params['year'] is None:
                         self.message_send(event.user_id, f'Укажите Ваш возраст, пожалуйста')
                         age = (self.request_info())
                         while not self.int_check(age):
                             self.message_send(event.user_id, f'Введите корректный возраст')
                             age = (self.request_info())
-                        self.params['year'] = int(age)   
-                        self.message_send(event.user_id, f'{self.params["year"]} {self.params["name"]} {self.params["city"]} {self.params["sex"]}')
+                        self.params['year'] = int(age)
+
                     if self.params['city'] is None:
                         self.message_send(event.user_id, f'Укажите Ваш город, пожалуйста')
                         self.params['city']= self.request_info()
-                        self.message_send(event.user_id, f'{self.params["year"]} {self.params["city"]} {self.params["name"]} {self.params["sex"]}')
+
                     if self.params['sex'] == 0:
                         self.message_send(event.user_id, f'Укажите Ваш пол, пожалуйста м/ж')
                         sex = (self.request_info())
-                        while not self.sex_check(sex):
-                            self.message_send(event.user_id, f'Укажите корректный пол м/ж')
+                        while sex not in 'мж':
+                            self.message_send(event.user_id, f'Введите корректный пол м/ж')
                             sex = (self.request_info())
-                        self.params['sex'] = 1 if sex == 'м' else 2
-                        self.message_send(event.user_id, f'{self.params["year"]} {self.params["city"]} {self.params["name"]} {self.params["sex"]}')  
+                        self.params['sex'] = 1 if sex == 'ж' else 2
+
+                    self.message_send(event.user_id, f'Введите "поиск" для поиска')  
 
                 elif event.text.lower()=="поиск":
                     if self.params:
-                        self.message_send(event.user_id, f'{self.params["year"]} {self.params["name"]} {self.params["city"]} {self.params["sex"]}')
+
                         self.message_send(event.user_id, f'Идёт поиск...')
 
                         if self.worksheets:
@@ -93,7 +91,8 @@ class BotMessage():
                             self.offset +=10
 
                         self.message_send(event.user_id, f'Имя:{self.worksheet["name"]} страница:vk.com/id{self.worksheet["id"]}',
-                                        attachment=self.photo_string)
+                                        attachment=self.photo_string) if self.worksheet\
+                                        else self.message_send(event.user_id, f'Не найдено подходящих анкет')
                     else:
                         self.message_send(event.user_id, f'Введите:\n"привет" для инициализации.')
 
