@@ -1,9 +1,8 @@
-from pprint import pprint
 from datetime import datetime
 import vk_api
 from vk_api.exceptions import ApiError
 from config import access_token
-from random import randint 
+ 
 
 class Info_users:
     def __init__(self, access_token):    
@@ -20,7 +19,7 @@ class Info_users:
 
         try:    
             info, = self.vkapi.method('users.get',
-            {'user_id': randint(10000,700000000),
+            {'user_id': user_id,
             'fields': 'city, sex, bdate, relation'}
             )
         except ApiError as e:
@@ -36,7 +35,7 @@ class Info_users:
     def search_profile(self, params, offset):
         try:    
             users = self.vkapi.method('users.search',
-                                      {'count': 10,
+                                      {'count': 50,
                                        'offset': offset,
                                        'hometown': params['city'],
                                        'sex': 1 if params['sex'] == 2 else 2,
@@ -75,15 +74,4 @@ class Info_users:
         result.sort(key=lambda x: x['likes']+x['comments'], reverse=True)        
         
         return result[:3]
-
-
-if __name__=="__main__":    
-    vk_client = Info_users(access_token)
-    params = vk_client.get_profile_info(user_id=randint(10000,700000000))
-    worksheets = vk_client.search_profile(params, 10)
-    # worksheet = worksheets.pop()
-    # photos = vk_client.get_photos(worksheet['id'])
-
-    
-    pprint(params)
-    
+   

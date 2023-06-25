@@ -3,6 +3,7 @@ from vk_api.longpoll import VkLongPoll, VkEventType
 from vk_api.utils import get_random_id
 from search import Info_users
 from config import comunity_token, access_token
+from database import add_user, check_user, engine
 
 
 class BotMessage():
@@ -39,19 +40,21 @@ class BotMessage():
     def photo (self):
         try:
             self.worksheet = self.worksheets.pop()
+            while check_user(engine, self.user_id, self.worksheet['id']):
+                self.worksheet = self.worksheets.pop()
             photos = self.vk_client.get_photos(self.worksheet['id'])
             self.photo_string = ''
             for photo in photos:
                 self.photo_string += f'photo{photo["owner_id"]}_{photo["id"]},'
         except (IndexError):
-            self.worksheet = []
-        else:
-            return
+            self.message_send(self.user_id, f'Не найдено подходящих анкет')
+            
     
 
     def request_mes(self):
         for event in self.longpoll.listen():
             if event.type == VkEventType.MESSAGE_NEW and event.to_me:
+                self.user_id = event.user_id
                 if event.text.lower()=="привет":
                     self.params = self.vk_client.get_profile_info(event.user_id)
                     self.message_send(event.user_id, f'Привет, {self.params["name"]}')
@@ -88,11 +91,13 @@ class BotMessage():
                         else:
                             self.worksheets = self.vk_client.search_profile(self.params, self.offset)
                             self.photo()
-                            self.offset +=10
+                            self.offset +=50
 
                         self.message_send(event.user_id, f'Имя:{self.worksheet["name"]} страница:vk.com/id{self.worksheet["id"]}',
-                                        attachment=self.photo_string) if self.worksheet\
-                                        else self.message_send(event.user_id, f'Не найдено подходящих анкет')
+                                        attachment=self.photo_string) 
+                                        
+                        add_user(engine, event.user_id, self.worksheet['id'])
+                        
                     else:
                         self.message_send(event.user_id, f'Введите:\n"привет" для инициализации.')
 
