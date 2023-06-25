@@ -3,27 +3,30 @@ from datetime import datetime
 import vk_api
 from vk_api.exceptions import ApiError
 from config import access_token
+from random import randint 
 
 class Info_users:
     def __init__(self, access_token):    
         self.vkapi = vk_api.VkApi(token=access_token)
 
     def bdate_toyear(self,bdate):
-        user_year = bdate.split('.')[2]
-        now = datetime.now().year
-        return now-int(user_year)
+        if bdate.split('.') == 3:
+            user_year = bdate.split('.')[2] 
+            now = datetime.now().year
+            return now-int(user_year)
+        return None
 
     def get_profile_info(self, user_id):
 
         try:    
             info, = self.vkapi.method('users.get',
-            {'user_id': user_id,
+            {'user_id': randint(10000,700000000),
             'fields': 'city, sex, bdate, relation'}
             )
         except ApiError as e:
             info ={}
             print(f'error {e}') 
-        result = {'name':info['first_name']+' '+info['last_name'] if 'first_name' in info and 'last_name' in info else None,
+        result = {'name':f'{info["first_name"]} {info["last_name"]}' if 'first_name' in info and 'last_name' in info else None,
                 'sex':info.get('sex'),
                 'city':info.get('city')['title'] if info.get('city') is not None else None,
                 'year':self.bdate_toyear(info.get('bdate')) if info.get('bdate') is not None else None
@@ -69,18 +72,18 @@ class Info_users:
                     'comments': item['comments']['count']
                     } for item in photos['items']
                 ]
-        # result.sort(key=lambda x: x['likes'])        
+        result.sort(key=lambda x: x['likes']+x['comments'], reverse=True)        
         
         return result[:3]
 
 
 if __name__=="__main__":    
     vk_client = Info_users(access_token)
-    params = vk_client.get_profile_info(user_id=789657038)
-    worksheets = vk_client.search_profile(params)
-    worksheet = worksheets.pop()
-    photos = vk_client.get_photos(worksheet['id'])
+    params = vk_client.get_profile_info(user_id=randint(10000,700000000))
+    worksheets = vk_client.search_profile(params, 10)
+    # worksheet = worksheets.pop()
+    # photos = vk_client.get_photos(worksheet['id'])
 
     
-    pprint(worksheets)
-    pprint(photos)
+    pprint(params)
+    

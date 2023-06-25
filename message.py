@@ -21,16 +21,44 @@ class BotMessage():
         'attachment': attachment,
         'random_id': get_random_id()})
 
+    def request_info(self):
+        for event in self.longpoll.listen():
+            if event.type == VkEventType.MESSAGE_NEW and event.to_me:
+                return event.text
+            
+    def int_check(self, num):
+        try:
+            int(num)
+        except (TypeError, ValueError):
+            return False
+        else:
+            return True
+
+        
+
     def request_mes(self):
         for event in self.longpoll.listen():
             if event.type == VkEventType.MESSAGE_NEW and event.to_me:
                 if event.text.lower()=="привет":
                     self.params = self.vk_client.get_profile_info(event.user_id)
                     self.message_send(event.user_id, f'Привет, {self.params["name"]}')
+                    if self.params['year'] is None:
+                        self.message_send(event.user_id, f'Укажите Ваш возраст, пожалуйста')
+                        age = (self.request_info())
+                        while not self.int_check(age):
+                            self.message_send(event.user_id, f'Введите корректный возраст')
+                            age = (self.request_info())
+                        self.params['year'] = int(age)   
+
+                        self.message_send(event.user_id, f'{self.params["year"]} {self.params["name"]} {self.params["city"]}')
+                    if self.params['city'] is None:
+                        self.message_send(event.user_id, f'Укажите Ваш город, пожалуйста')
+                        self.params['city']= self.request_info()
+                        self.message_send(event.user_id, f'{self.params["year"]} {self.params["city"]} {self.params["name"]}')  
+
                 elif event.text.lower()=="поиск":
                     self.message_send(event.user_id, f'Идёт поиск...')
 
-                    
                     if self.worksheets:
                         worksheet = self.worksheets.pop()
                         photos = self.vk_client.get_photos(worksheet['id'])
@@ -44,13 +72,11 @@ class BotMessage():
                         photo_string = ''
                         for photo in photos:
                             photo_string += f'photo{photo["owner_id"]}_{photo["id"]},'
-                        self.offset +=10
+                    self.offset +=10
 
                     self.message_send(event.user_id, f'Имя:{worksheet["name"]} страница:vk.com/id{worksheet["id"]}',
                                       attachment=photo_string)
 
-                elif event.text.lower()=="пока":
-                    self.message_send(event.user_id, f'До свидания, {event.user_id}')
                 else:
                     self.message_send(event.user_id, f'Неизвестная команда')
 
