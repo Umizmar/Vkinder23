@@ -33,8 +33,25 @@ class BotMessage():
             return False
         else:
             return True
-
         
+    def sex_check(self, sex):
+        if sex != 'м' or 'ж':
+            return False
+        else:
+            return True
+        
+    def photo (self):
+        try:
+            self.worksheet = self.worksheets.pop()
+            photos = self.vk_client.get_photos(self.worksheet['id'])
+            self.photo_string = ''
+            for photo in photos:
+                self.photo_string += f'photo{photo["owner_id"]}_{photo["id"]},'
+        except (IndexError):
+            self.message_send(self.event.user_id, f'Идёт поиск...')
+        else:
+            return
+    
 
     def request_mes(self):
         for event in self.longpoll.listen():
@@ -49,36 +66,39 @@ class BotMessage():
                             self.message_send(event.user_id, f'Введите корректный возраст')
                             age = (self.request_info())
                         self.params['year'] = int(age)   
-
-                        self.message_send(event.user_id, f'{self.params["year"]} {self.params["name"]} {self.params["city"]}')
+                        self.message_send(event.user_id, f'{self.params["year"]} {self.params["name"]} {self.params["city"]} {self.params["sex"]}')
                     if self.params['city'] is None:
                         self.message_send(event.user_id, f'Укажите Ваш город, пожалуйста')
                         self.params['city']= self.request_info()
-                        self.message_send(event.user_id, f'{self.params["year"]} {self.params["city"]} {self.params["name"]}')  
+                        self.message_send(event.user_id, f'{self.params["year"]} {self.params["city"]} {self.params["name"]} {self.params["sex"]}')
+                    if self.params['sex'] == 0:
+                        self.message_send(event.user_id, f'Укажите Ваш пол, пожалуйста м/ж')
+                        sex = (self.request_info())
+                        while not self.sex_check(sex):
+                            self.message_send(event.user_id, f'Укажите корректный пол м/ж')
+                            sex = (self.request_info())
+                        self.params['sex'] = 1 if sex == 'м' else 2
+                        self.message_send(event.user_id, f'{self.params["year"]} {self.params["city"]} {self.params["name"]} {self.params["sex"]}')  
 
                 elif event.text.lower()=="поиск":
-                    self.message_send(event.user_id, f'Идёт поиск...')
+                    if self.params:
+                        self.message_send(event.user_id, f'{self.params["year"]} {self.params["name"]} {self.params["city"]} {self.params["sex"]}')
+                        self.message_send(event.user_id, f'Идёт поиск...')
 
-                    if self.worksheets:
-                        worksheet = self.worksheets.pop()
-                        photos = self.vk_client.get_photos(worksheet['id'])
-                        photo_string = ''
-                        for photo in photos:
-                            photo_string += f'photo{photo["owner_id"]}_{photo["id"]},'
+                        if self.worksheets:
+                            self.photo()   
+                        else:
+                            self.worksheets = self.vk_client.search_profile(self.params, self.offset)
+                            self.photo()
+                            self.offset +=10
+
+                        self.message_send(event.user_id, f'Имя:{self.worksheet["name"]} страница:vk.com/id{self.worksheet["id"]}',
+                                        attachment=self.photo_string)
                     else:
-                        self.worksheets = self.vk_client.search_profile(self.params, self.offset)
-                        worksheet = self.worksheets.pop()
-                        photos = self.vk_client.get_photos(worksheet['id'])
-                        photo_string = ''
-                        for photo in photos:
-                            photo_string += f'photo{photo["owner_id"]}_{photo["id"]},'
-                    self.offset +=10
-
-                    self.message_send(event.user_id, f'Имя:{worksheet["name"]} страница:vk.com/id{worksheet["id"]}',
-                                      attachment=photo_string)
+                        self.message_send(event.user_id, f'Введите:\n"привет" для инициализации.')
 
                 else:
-                    self.message_send(event.user_id, f'Неизвестная команда')
+                    self.message_send(event.user_id, f'Введите:\n"привет" для инициализации.\n"поиск" для поиска')
 
 if __name__=="__main__":
     bot_mes = BotMessage(comunity_token, access_token)
